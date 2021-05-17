@@ -13,8 +13,6 @@ consumer_secret = keys["api_secret_key"]
 access_token = keys["access_token"]
 access_token_secret = keys["access_token_secret"]
 
-print("Error loading configuration from 'credentials.json'...")
-
 # Complete OAUTH with API
 auth = tw.OAuthHandler(consumer_key, consumer_secret)
 auth.set_access_token(access_token, access_token_secret)
@@ -27,7 +25,7 @@ def get_tweets(search_string, n_items):
     node_df = pd.DataFrame(columns=["tag", "sentiment"])
     edge_df = pd.DataFrame(columns=["tag", "associated_tag"])
 
-    tweets = tw.Cursor(api.search, count=1000, q=search_string,
+    tweets = tw.Cursor(api.search, count=500, q=search_string,
                               show_user=True, tweet_mode="extended").items(n_items)
 
     for tweet in tweets:

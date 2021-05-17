@@ -21,8 +21,7 @@ app.layout = dbc.Container(
                 [
                     dbc.Label("Search Phrase", html_for="search_phrase"),
                     dbc.Input(
-                        id="search_phrase", placeholder="Enter a search phrase...", type="text"),
-                    dbc.Button("Update", id="update", color="primary", block=True)
+                        id="search_phrase", placeholder="Enter a search phrase...", type="text", debounce=True)
                 ]
             ), md=2),
             dbc.Col(
@@ -61,11 +60,11 @@ app.layout = dbc.Container(
 @app.callback(
     # Callback to update graph elements, based on a search phrase
     Output("cytoscape", "elements"),
-    Input("update", "n_clicks"),
-    State("search_phrase", "value"), prevent_initial_call=True)
-def update_graph(search_phrase, update):
+    Input("search_phrase", "value"),
+    prevent_initial_call=True)
+def update_graph(search_phrase):
     # User defines number of tweets and search string
-    node_df, edge_df = get_tweets(search_phrase, 1000)
+    node_df, edge_df = get_tweets(search_phrase, 500)
 
     # Use local data frames for development purposes
     #node_df = pd.read_csv(
