@@ -6,11 +6,16 @@ from tweepy_helper import get_tweets
 import pandas as pd
 from dash.dependencies import Input, Output, State
 from plotly.offline import init_notebook_mode
+import json
+import plotly.express as px
 
 init_notebook_mode(connected=True)
 
 # Explore external_stylesheets themes here https://dash-bootstrap-components.opensource.faculty.ai/docs/themes/explorer/
 app = dash.Dash(external_stylesheets=[dbc.themes.SOLAR])
+
+
+
 
 # Define app layout, using Dash Bootstrap Components https://dash-bootstrap-components.opensource.faculty.ai/docs/
 app.layout = dbc.Container(
@@ -21,15 +26,23 @@ app.layout = dbc.Container(
                 [
                     dbc.Label("Search Phrase", html_for="search_phrase"),
                     dbc.Input(
-                        id="search_phrase", placeholder="Enter a search phrase...", type="text", debounce=True)
+                        id="search_phrase", placeholder="Enter a search phrase...", type="text", debounce=True),
+                    html.Br(),
+                    html.P( id='cytoscape-tapNodeData-json')
+
                 ]
             ), md=2),
+
             dbc.Col(
                 cyto.Cytoscape(
                     id='cytoscape',
                     layout={'name': 'cose'},
                     style={'width': '100%', 'height': '800px'},
                     elements=[],
+
+
+
+
                     stylesheet=[
                         # See https://js.cytoscape.org/#style
                         # Colour nodes by sentiment, size by support
@@ -37,9 +50,8 @@ app.layout = dbc.Container(
                             'selector': 'node',
                             'style': {
                                 'label': 'data(label)',
-                                'color': 'white',
                                 'font-size': 6,
-                                'background-color': 'mapData(weight, -1, 0, red, yellow)',
+                                'background-color': 'mapData(weight, -1, 0, yellow, red)',
                                 "width": 'data(size)',
                                 "height": 'data(size)',
                                 "opacity": 0.75
@@ -51,10 +63,21 @@ app.layout = dbc.Container(
                             }
                         },
                     ]
-                ), md=10)]),
+                ),  md=10)]),
     ],
     fluid=True,
+
 )
+
+
+
+
+
+
+@app.callback(Output('cytoscape-tapNodeData-json', 'children'),
+              Input('cytoscape', 'tapNodeData'))
+def displayTapNodeData(data):
+    return "#{} was tweeted {} times with an average sentiment of {}".format(data["label"],data["count"],data["weight"])
 
 
 @app.callback(
@@ -64,7 +87,8 @@ app.layout = dbc.Container(
     prevent_initial_call=True)
 def update_graph(search_phrase):
     # User defines number of tweets and search string
-    node_df, edge_df = get_tweets(search_phrase, 500)
+    node_df, edge_df = get_tweets(search_phrase, 50)
+
 
     # Use local data frames for development purposes
     #node_df = pd.read_csv(
@@ -82,6 +106,7 @@ def update_graph(search_phrase):
                      'label': tag,
                      # A scaling factor is applied to each node here.
                      'size': int(counts.loc[tag]) * 3,
+                     'count': counts.loc[tag],
                      'weight': float(avg_sentiment.loc[tag])
                      }
         }
@@ -94,6 +119,7 @@ def update_graph(search_phrase):
             elements.append(edge)
 
     return elements
+
 
 
 if __name__ == "__main__":
