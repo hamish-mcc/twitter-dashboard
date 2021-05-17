@@ -8,6 +8,7 @@ from dash.dependencies import Input, Output, State
 from plotly.offline import init_notebook_mode
 import json
 import plotly.express as px
+from sklearn.preprocessing import MinMaxScaler
 
 init_notebook_mode(connected=True)
 
@@ -28,7 +29,9 @@ app.layout = dbc.Container(
                     dbc.Input(
                         id="search_phrase", placeholder="Enter a search phrase...", type="text", debounce=True),
                     html.Br(),
-                    html.P( id='cytoscape-tapNodeData-json')
+                    html.P( id='cytoscape-tapNodeData-json'),
+                    html.Br(),
+                    html.P(id='cytoscape-tapEdgeData-output'),
 
                 ]
             ), md=2),
@@ -51,10 +54,11 @@ app.layout = dbc.Container(
                             'style': {
                                 'label': 'data(label)',
                                 'font-size': 6,
-                                'background-color': 'mapData(weight, -1, 0, yellow, red)',
+                                'background-color': 'mapData(weight, -1, 1, red, green)',
                                 "width": 'data(size)',
                                 "height": 'data(size)',
-                                "opacity": 0.75
+                                "opacity": 0.75,
+                                "color": "white"
                             },
                         }, {
                             'selector': 'edge',
@@ -77,7 +81,7 @@ app.layout = dbc.Container(
 @app.callback(Output('cytoscape-tapNodeData-json', 'children'),
               Input('cytoscape', 'tapNodeData'))
 def displayTapNodeData(data):
-    return "#{} was tweeted {} times with an average sentiment of {}".format(data["label"],data["count"],data["weight"])
+    return "#{} was tweeted {} times with an average sentiment of {}".format(data["label"],data["count"],data["weight"]/100)
 
 
 @app.callback(
@@ -88,17 +92,21 @@ def displayTapNodeData(data):
 def update_graph(search_phrase):
     # User defines number of tweets and search string
     node_df, edge_df = get_tweets(search_phrase, 50)
-
+    print(node_df["sentiment"].min())
 
     # Use local data frames for development purposes
     #node_df = pd.read_csv(
         #"C:/Users/hamis/Documents/Uni/158222/assignments/assignment 3/development/hashtag_sentiment.csv", index_col=0)
     #edge_df = pd.read_csv(
         #"C:/Users/hamis/Documents/Uni/158222/assignments/assignment 3/development/hashtag_pairing.csv", index_col=0)
-
+    scaler = MinMaxScaler()
+    node_df["sentiment"] = node_df["sentiment"]*100
+    print(node_df)
     elements = []
     counts = node_df.groupby(by='tag').count()
+
     avg_sentiment = node_df.groupby(by='tag').mean()
+
     # Add nodes
     for tag in node_df['tag'].unique():
         node = {
@@ -112,13 +120,21 @@ def update_graph(search_phrase):
         }
         elements.append(node)
     # Add edges
-    for pair in edge_df.index:
+    edge_count = edge_df.groupby(['tag','associated_tag']).size().reset_index(name="pair_count")
+    print(edge_count)
+    for pair in edge_count.index:
         edge = {'data': {
-            'source': edge_df.loc[pair, 'tag'], 'target': edge_df.loc[pair, 'associated_tag']}}
+            'source': edge_count.loc[pair, 'tag'], 'target': edge_count.loc[pair, 'associated_tag'],"count":edge_count.loc[pair, 'pair_count']}}
         if edge not in elements:
-            elements.append(edge)
+            elements.   append(edge)
 
     return elements
+
+@app.callback(Output('cytoscape-tapEdgeData-output', 'children'),
+                  Input('cytoscape', 'tapEdgeData'))
+def displayTapEdgeData(data):
+        if data:
+            return "You recently clicked/tapped the edge between " + data['source'].upper() + " and " + data['target'].upper() + " and occured {} times.".format(data['count'])
 
 
 
