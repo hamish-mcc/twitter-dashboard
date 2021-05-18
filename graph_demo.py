@@ -1,14 +1,17 @@
 import dash
 import dash_bootstrap_components as dbc
+import dash_core_components as dcc
 import dash_html_components as html
+import dash_table as dt
 import dash_cytoscape as cyto
 from tweepy_helper import get_tweets
 import pandas as pd
 from dash.dependencies import Input, Output, State
 from plotly.offline import init_notebook_mode
-import json
+import numpy as np
 import plotly.express as px
-from sklearn.preprocessing import MinMaxScaler
+
+
 
 init_notebook_mode(connected=True)
 
@@ -19,7 +22,9 @@ app = dash.Dash(external_stylesheets=[dbc.themes.SOLAR])
 
 
 # Define app layout, using Dash Bootstrap Components https://dash-bootstrap-components.opensource.faculty.ai/docs/
-app.layout = dbc.Container(
+app.layout = dcc.Tabs([
+    dcc.Tab( label = "Interactive Graph", children =[
+    dbc.Container(
     [
         html.H1("graph_demo.py"),
         dbc.Row([
@@ -72,34 +77,33 @@ app.layout = dbc.Container(
     fluid=True,
 
 )
+    ]
+             ),
+    dcc.Tab(label = "Statistics", children = [
+        html.Div(id = "places")
+    ])
+    ]
+)
 
 
 
 
 
-
-@app.callback(Output('cytoscape-tapNodeData-json', 'children'),
-              Input('cytoscape', 'tapNodeData'))
-def displayTapNodeData(data):
-    return "#{} was tweeted {} times with an average sentiment of {}".format(data["label"],data["count"],data["weight"]/100)
 
 
 @app.callback(
     # Callback to update graph elements, based on a search phrase
     Output("cytoscape", "elements"),
+    Output("places","children"),
     Input("search_phrase", "value"),
     prevent_initial_call=True)
 def update_graph(search_phrase):
     # User defines number of tweets and search string
-    node_df, edge_df = get_tweets(search_phrase, 50)
-    print(node_df["sentiment"].min())
 
-    # Use local data frames for development purposes
-    #node_df = pd.read_csv(
-        #"C:/Users/hamis/Documents/Uni/158222/assignments/assignment 3/development/hashtag_sentiment.csv", index_col=0)
-    #edge_df = pd.read_csv(
-        #"C:/Users/hamis/Documents/Uni/158222/assignments/assignment 3/development/hashtag_pairing.csv", index_col=0)
-    scaler = MinMaxScaler()
+    node_df, edge_df, place_df = get_tweets(search_phrase, 50)
+    global test_var
+    test_var = search_phrase
+
     node_df["sentiment"] = node_df["sentiment"]*100
     print(node_df)
     elements = []
@@ -128,7 +132,20 @@ def update_graph(search_phrase):
         if edge not in elements:
             elements.   append(edge)
 
-    return elements
+
+    #calc for place table
+    place_df["place"].replace("",np.nan, inplace = True)
+    place_head = place_df.dropna().groupby("place").count().sort_values(by = "tweet", ascending = False).head()
+    place_head = place_head.reset_index()
+    place_columns = [{'name':i,'id':i} for i in place_head.columns]
+    place_div = html.Div([dt.DataTable(id = "place_table",columns = place_columns, data = place_head.to_dict("rows"))],style={'width': '90vh', 'height': '90vh'})
+
+    return elements, place_div
+
+
+
+
+
 
 @app.callback(Output('cytoscape-tapEdgeData-output', 'children'),
                   Input('cytoscape', 'tapEdgeData'))
@@ -136,6 +153,11 @@ def displayTapEdgeData(data):
         if data:
             return "You recently clicked/tapped the edge between " + data['source'].upper() + " and " + data['target'].upper() + " and occured {} times.".format(data['count'])
 
+
+@app.callback(Output('cytoscape-tapNodeData-json', 'children'),
+              Input('cytoscape', 'tapNodeData'))
+def displayTapNodeData(data):
+    return "#{} was tweeted {} times with an average sentiment of {}".format(data["label"],data["count"],data["weight"]/100)
 
 
 if __name__ == "__main__":

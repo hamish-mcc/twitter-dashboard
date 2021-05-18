@@ -24,11 +24,13 @@ api = tw.API(auth, wait_on_rate_limit=True, wait_on_rate_limit_notify=True)
 def get_tweets(search_string, n_items):
     node_df = pd.DataFrame(columns=["tag", "sentiment"])
     edge_df = pd.DataFrame(columns=["tag", "associated_tag"])
+    place_df = pd.DataFrame(columns=["tweet", "place"])
 
     tweets = tw.Cursor(api.search, count=500, q=search_string,
                               show_user=True, tweet_mode="extended").items(n_items)
 
     for tweet in tweets:
+        place_df = place_df.append({"tweet":tweet.full_text,"place":tweet.user.location},ignore_index = True)
         try:
             temp_tags = []
             for _, tag in enumerate(tweet.entities.get('hashtags')):
@@ -43,4 +45,4 @@ def get_tweets(search_string, n_items):
         except:
             pass
 
-    return node_df, edge_df
+    return node_df, edge_df, place_df
