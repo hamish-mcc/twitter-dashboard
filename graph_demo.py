@@ -80,6 +80,9 @@ app.layout = dcc.Tabs([
     ]
              ),
     dcc.Tab(label = "Statistics", children = [
+        html.H2("The top 5 hash tags are:"),
+        html.Div(id = "top_tweets"),
+        html.H2("The top 5 places these tweets came from:"),
         html.Div(id = "places")
     ])
     ]
@@ -95,6 +98,7 @@ app.layout = dcc.Tabs([
     # Callback to update graph elements, based on a search phrase
     Output("cytoscape", "elements"),
     Output("places","children"),
+    Output("top_tweets","children"),
     Input("search_phrase", "value"),
     prevent_initial_call=True)
 def update_graph(search_phrase):
@@ -105,7 +109,7 @@ def update_graph(search_phrase):
     test_var = search_phrase
 
     node_df["sentiment"] = node_df["sentiment"]*100
-    print(node_df)
+
     elements = []
     counts = node_df.groupby(by='tag').count()
 
@@ -125,7 +129,7 @@ def update_graph(search_phrase):
         elements.append(node)
     # Add edges
     edge_count = edge_df.groupby(['tag','associated_tag']).size().reset_index(name="pair_count")
-    print(edge_count)
+
     for pair in edge_count.index:
         edge = {'data': {
             'source': edge_count.loc[pair, 'tag'], 'target': edge_count.loc[pair, 'associated_tag'],"count":edge_count.loc[pair, 'pair_count']}}
@@ -140,7 +144,17 @@ def update_graph(search_phrase):
     place_columns = [{'name':i,'id':i} for i in place_head.columns]
     place_div = html.Div([dt.DataTable(id = "place_table",columns = place_columns, data = place_head.to_dict("rows"))],style={'width': '90vh', 'height': '90vh'})
 
-    return elements, place_div
+    #Calc for top 5 tweets
+    top_five = node_df.groupby("tag").count().sort_values(by = "sentiment", ascending = False).head()
+    top_five = top_five.reset_index()
+    top_five.columns = ["Tag","Count"]
+    top_five_cols = [{'name':i,'id':i} for i in top_five.columns]
+    top_5_div = html.Div([dt.DataTable(id = "top_five_table",columns = top_five_cols, data = top_five.to_dict("rows"))],style={'width': '90vh', 'height': '90vh'})
+
+    #Calc for tweets with largest sentiment
+
+
+    return elements, place_div, top_5_div
 
 
 
@@ -151,7 +165,7 @@ def update_graph(search_phrase):
                   Input('cytoscape', 'tapEdgeData'))
 def displayTapEdgeData(data):
         if data:
-            return "You recently clicked/tapped the edge between " + data['source'].upper() + " and " + data['target'].upper() + " and occured {} times.".format(data['count'])
+            return "You recently clicked/tapped the edge between " + data['source'].upper() + " and " + data['target'].upper() + " which occured {} times.".format(data['count'])
 
 
 @app.callback(Output('cytoscape-tapNodeData-json', 'children'),
