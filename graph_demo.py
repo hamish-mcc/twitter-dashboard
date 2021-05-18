@@ -83,7 +83,9 @@ app.layout = dcc.Tabs([
         html.H2("The top 5 hash tags are:"),
         html.Div(id = "top_tweets"),
         html.H2("The top 5 places these tweets came from:"),
-        html.Div(id = "places")
+        html.Div(id = "places"),
+        html.Div([dcc.Graph(id="histogram")]),
+        html.Img(className="word_cloud", src="/assets/cloud.png")
     ])
     ]
 )
@@ -99,14 +101,13 @@ app.layout = dcc.Tabs([
     Output("cytoscape", "elements"),
     Output("places","children"),
     Output("top_tweets","children"),
+    Output("histogram","figure"),
     Input("search_phrase", "value"),
     prevent_initial_call=True)
 def update_graph(search_phrase):
     # User defines number of tweets and search string
 
-    node_df, edge_df, place_df = get_tweets(search_phrase, 50)
-    global test_var
-    test_var = search_phrase
+    node_df, edge_df, place_df, histfig = get_tweets(search_phrase, 50)
 
     node_df["sentiment"] = node_df["sentiment"]*100
 
@@ -151,10 +152,9 @@ def update_graph(search_phrase):
     top_five_cols = [{'name':i,'id':i} for i in top_five.columns]
     top_5_div = html.Div([dt.DataTable(id = "top_five_table",columns = top_five_cols, data = top_five.to_dict("rows"))],style={'width': '90vh', 'height': '90vh'})
 
-    #Calc for tweets with largest sentiment
 
 
-    return elements, place_div, top_5_div
+    return elements, place_div, top_5_div, histfig
 
 
 
