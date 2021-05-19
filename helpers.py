@@ -4,7 +4,10 @@ from textblob import TextBlob
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
 from wordcloud import WordCloud, STOPWORDS
 import matplotlib.pyplot as plt
+
+
 # cleaning the tweets
+
 def remove_pattern(input_txt, pattern):
     r = re.findall(pattern, input_txt)
     for i in r:
@@ -27,8 +30,6 @@ def clean_tweets(tweets):
 
     return tweets
 
-def percentage(part, whole):
-    return 100 * float(part) / float(whole)
 
 def analyze(text):
     analysis = TextBlob(text)
@@ -39,6 +40,7 @@ def analyze(text):
         return "positive"
     elif score['pos'] == score['neg']:
         return "neutral"
+
 
 def word_cloud(wd_list):
     stopwords = set(STOPWORDS)

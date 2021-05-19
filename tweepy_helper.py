@@ -1,18 +1,8 @@
-import tweepy as tw
-import pandas as pd
-from textblob import TextBlob
 import itertools
 import json
-import dash
-import dash_core_components as dcc
-import dash_html_components as html
 import plotly.express as px
 import pandas as pd
-import geopandas as gpd
 import tweepy as tw
-import matplotlib.pyplot as plt
-from datetime import datetime, timedelta
-from dash.dependencies import Input, Output
 from helpers import *
 
 # Load keys from configuration
@@ -37,15 +27,15 @@ def get_tweets(search_string, n_items):
     edge_df = pd.DataFrame(columns=["tag", "associated_tag"])
     place_df = pd.DataFrame(columns=["tweet", "place"])
 
-    #natalias
+    # natalia's df
     sentiments = []
 
     tweets = tw.Cursor(api.search, count=500, q=search_string,
-                              show_user=True, tweet_mode="extended").items(n_items)
+                       show_user=True, tweet_mode="extended").items(n_items)
 
     for tweet in tweets:
         sentiments.append({'text': tweet.full_text, 'date': tweet.created_at})
-        place_df = place_df.append({"tweet":tweet.full_text,"place":tweet.user.location},ignore_index = True)
+        place_df = place_df.append({"tweet": tweet.full_text, "place": tweet.user.location}, ignore_index=True)
         try:
             temp_tags = []
             for _, tag in enumerate(tweet.entities.get('hashtags')):
@@ -60,7 +50,7 @@ def get_tweets(search_string, n_items):
         except:
             pass
 
-    #wordcloud stuff
+    # word cloud stuff
 
     tweets_df = pd.DataFrame.from_dict(sentiments)
     tweets_df.text = clean_tweets(tweets_df.text)
@@ -78,15 +68,14 @@ def get_tweets(search_string, n_items):
             'negative': negative
         })
 
-
     for i, row in tweets_df.iterrows():
-        tweets_df.at[i, "analysis"] = analyze(row.text)
+        tweets_df.at[i, "Sentiment"] = analyze(row.text)
 
     scores_df = pd.DataFrame.from_dict(scores)
     fig_word_cloud = word_cloud(tweets_df.text)
 
-    df = tweets_df.analysis
-    histfig = px.histogram(df, nbins=5)
+    hist_fig = px.histogram(tweets_df.Sentiment, nbins=5, width=800, height=600,
+                            labels={"value": "Sentiment"}, template="simple_white")
+    hist_fig.update_layout(yaxis_title_text='Count')
 
-
-    return node_df, edge_df, place_df, histfig
+    return node_df, edge_df, place_df, hist_fig
