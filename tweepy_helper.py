@@ -1,9 +1,9 @@
 import itertools
 import json
-import plotly.express as px
 import pandas as pd
 import tweepy as tw
 from helpers import *
+from textblob import TextBlob
 
 # Load keys from configuration
 with open("credentials.json") as credentials:
@@ -47,11 +47,11 @@ def get_tweets(search_string, n_items):
                 for pair in res:
                     edge_df = edge_df.append(
                         {"tag": pair[0], "associated_tag": pair[1]}, ignore_index=True)
+
         except:
             pass
 
-    # word cloud stuff
-
+    # word cloud stuff - 
     tweets_df = pd.DataFrame.from_dict(sentiments)
     tweets_df.text = clean_tweets(tweets_df.text)
 
@@ -71,11 +71,13 @@ def get_tweets(search_string, n_items):
     for i, row in tweets_df.iterrows():
         tweets_df.at[i, "Sentiment"] = analyze(row.text)
 
-    scores_df = pd.DataFrame.from_dict(scores)
-    fig_word_cloud = word_cloud(tweets_df.text)
+    # scores_df = pd.DataFrame.from_dict(scores)
+    cloud_path = word_cloud(tweets_df.text)
 
-    hist_fig = px.histogram(tweets_df.Sentiment, nbins=5, width=800, height=600,
-                            labels={"value": "Sentiment"}, template="simple_white")
-    hist_fig.update_layout(yaxis_title_text='Count')
+    y = []
+    neg_count = tweets_df[tweets_df['Sentiment'] == 'negative'].count()
+    neut_count = tweets_df[tweets_df['Sentiment'] == 'neutral'].count()
+    pos_count = tweets_df[tweets_df['Sentiment'] == 'positive'].count()
+    y = [neg_count.Sentiment, neut_count.Sentiment, pos_count.Sentiment]
 
-    return node_df, edge_df, place_df, hist_fig
+    return node_df, edge_df, place_df, cloud_path, y

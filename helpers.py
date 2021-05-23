@@ -4,9 +4,8 @@ from textblob import TextBlob
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
 from wordcloud import WordCloud, STOPWORDS
 import matplotlib.pyplot as plt
+import uuid
 
-
-# cleaning the tweets
 
 def remove_pattern(input_txt, pattern):
     r = re.findall(pattern, input_txt)
@@ -57,4 +56,6 @@ def word_cloud(wd_list):
     plt.figure(figsize=(12, 10))
     plt.axis('off')
     plt.imshow(word_cloud, interpolation="bilinear")
-    word_cloud.to_file('assets/cloud.png')
+    img = f"assets/cloud-{uuid.uuid4()}.png"
+    word_cloud.to_file(img)
+    return img
