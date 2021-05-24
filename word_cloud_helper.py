@@ -1,6 +1,5 @@
 import numpy as np
 import re
-from textblob import TextBlob
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
 from wordcloud import WordCloud, STOPWORDS
 import matplotlib.pyplot as plt
@@ -31,7 +30,7 @@ def clean_tweets(tweets):
 
 
 def analyze(text):
-    analysis = TextBlob(text)
+    # Sentiment analysis of tweet
     score = SentimentIntensityAnalyzer().polarity_scores(text)
     if score['neg'] > score['pos']:
         return "negative"
@@ -42,6 +41,7 @@ def analyze(text):
 
 
 def word_cloud(wd_list):
+    # Build word cloud graphic from list of words
     stopwords = set(STOPWORDS)
     all_words = ' '.join([text for text in wd_list])
     word_cloud = WordCloud(

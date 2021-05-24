@@ -2,7 +2,7 @@ import itertools
 import json
 import pandas as pd
 import tweepy as tw
-from helpers import *
+from word_cloud_helper import *
 from textblob import TextBlob
 
 # Load keys from configuration
@@ -20,14 +20,12 @@ auth.set_access_token(access_token, access_token_secret)
 
 api = tw.API(auth, wait_on_rate_limit=True, wait_on_rate_limit_notify=True)
 
-
-# Gets a number of tweets and returns dataframes for nodes (hashtags) and edges (hashtag pairs)
+# Gets a number of tweets and returns dataframes for nodes (hashtags) and edges (hashtag pairs).
+# Also returns a word cloud image and data for plotting sentiment analysis summary
 def get_tweets(search_string, n_items):
-    node_df = pd.DataFrame(columns=["tag", "sentiment"])
+    node_df = pd.DataFrame(columns=["tag", "sentiment", "location"])
     edge_df = pd.DataFrame(columns=["tag", "associated_tag"])
-    place_df = pd.DataFrame(columns=["tweet", "place"])
 
-    # natalia's df
     sentiments = []
 
     tweets = tw.Cursor(api.search, count=500, q=search_string,
@@ -35,23 +33,27 @@ def get_tweets(search_string, n_items):
 
     for tweet in tweets:
         sentiments.append({'text': tweet.full_text, 'date': tweet.created_at})
-        place_df = place_df.append({"tweet": tweet.full_text, "place": tweet.user.location}, ignore_index=True)
         try:
             temp_tags = []
             for _, tag in enumerate(tweet.entities.get('hashtags')):
                 temp_tags.append(tag["text"])
-                node_df = node_df.append({"tag": tag["text"], "sentiment": TextBlob(
-                    tweet.full_text).polarity}, ignore_index=True)
+                node_df = node_df.append({
+                    "tag": tag["text"],
+                    "sentiment": TextBlob(tweet.full_text).polarity,
+                    "location": tweet.user.location
+                }, ignore_index=True)
             res = list(itertools.combinations(temp_tags, 2))
             if res != []:
                 for pair in res:
-                    edge_df = edge_df.append(
-                        {"tag": pair[0], "associated_tag": pair[1]}, ignore_index=True)
+                    edge_df = edge_df.append({
+                        "tag": pair[0],
+                        "associated_tag": pair[1]
+                    }, ignore_index=True)
 
         except:
             pass
 
-    # word cloud stuff - 
+    # Generate word cloud. Sentiment analysis using VADER
     tweets_df = pd.DataFrame.from_dict(sentiments)
     tweets_df.text = clean_tweets(tweets_df.text)
 
@@ -71,13 +73,12 @@ def get_tweets(search_string, n_items):
     for i, row in tweets_df.iterrows():
         tweets_df.at[i, "Sentiment"] = analyze(row.text)
 
-    # scores_df = pd.DataFrame.from_dict(scores)
     cloud_path = word_cloud(tweets_df.text)
 
-    y = []
+    hist_data = []
     neg_count = tweets_df[tweets_df['Sentiment'] == 'negative'].count()
     neut_count = tweets_df[tweets_df['Sentiment'] == 'neutral'].count()
     pos_count = tweets_df[tweets_df['Sentiment'] == 'positive'].count()
-    y = [neg_count.Sentiment, neut_count.Sentiment, pos_count.Sentiment]
+    hist_data = [neg_count.Sentiment, neut_count.Sentiment, pos_count.Sentiment]
 
-    return node_df, edge_df, place_df, cloud_path, y
+    return node_df, edge_df, cloud_path, hist_data
