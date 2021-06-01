@@ -1,7 +1,7 @@
 # twitter-dashboard
-Group Project for 158.222 Assignment 3.
+A tool for exploring interconnections between topics/hashtags on twitter. Insight can be drawn from visual analysis of a network graph, as well as sentiment analysis.
 
-'app.py' is a Plotly Dash app. Run this file then view the dashboard in your browser.
+'app.py' is a Plotly Dash app. Run this file then access the dashboard in your browser.
 
 You will need to generate your own keys for the Twitter API and enter these in 'credentials.json'
 
